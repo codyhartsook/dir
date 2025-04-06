@@ -25,6 +25,7 @@ const _ = grpc.SupportPackageIsVersion8
 const (
 	RoutingService_Publish_FullMethodName   = "/routing.v1alpha1.RoutingService/Publish"
 	RoutingService_List_FullMethodName      = "/routing.v1alpha1.RoutingService/List"
+	RoutingService_Search_FullMethodName    = "/routing.v1alpha1.RoutingService/Search"
 	RoutingService_Unpublish_FullMethodName = "/routing.v1alpha1.RoutingService/Unpublish"
 )
 
@@ -46,6 +47,9 @@ type RoutingServiceClient interface {
 	// List all the available items across the network.
 	// TODO: maybe remove to search?
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (RoutingService_ListClient, error)
+	// Search for a given object across the network or local store.
+	// This will return all the items that match the given labels with scores.
+	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (RoutingService_SearchClient, error)
 	// Unpublish a given object.
 	// This will remove the object from the network.
 	Unpublish(ctx context.Context, in *UnpublishRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -102,6 +106,39 @@ func (x *routingServiceListClient) Recv() (*ListResponse, error) {
 	return m, nil
 }
 
+func (c *routingServiceClient) Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (RoutingService_SearchClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RoutingService_ServiceDesc.Streams[1], RoutingService_Search_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &routingServiceSearchClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type RoutingService_SearchClient interface {
+	Recv() (*SearchResponse, error)
+	grpc.ClientStream
+}
+
+type routingServiceSearchClient struct {
+	grpc.ClientStream
+}
+
+func (x *routingServiceSearchClient) Recv() (*SearchResponse, error) {
+	m := new(SearchResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *routingServiceClient) Unpublish(ctx context.Context, in *UnpublishRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -130,6 +167,9 @@ type RoutingServiceServer interface {
 	// List all the available items across the network.
 	// TODO: maybe remove to search?
 	List(*ListRequest, RoutingService_ListServer) error
+	// Search for a given object across the network or local store.
+	// This will return all the items that match the given labels with scores.
+	Search(*SearchRequest, RoutingService_SearchServer) error
 	// Unpublish a given object.
 	// This will remove the object from the network.
 	Unpublish(context.Context, *UnpublishRequest) (*emptypb.Empty, error)
@@ -147,6 +187,9 @@ func (UnimplementedRoutingServiceServer) Publish(context.Context, *PublishReques
 }
 func (UnimplementedRoutingServiceServer) List(*ListRequest, RoutingService_ListServer) error {
 	return status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedRoutingServiceServer) Search(*SearchRequest, RoutingService_SearchServer) error {
+	return status.Errorf(codes.Unimplemented, "method Search not implemented")
 }
 func (UnimplementedRoutingServiceServer) Unpublish(context.Context, *UnpublishRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Unpublish not implemented")
@@ -210,6 +253,27 @@ func (x *routingServiceListServer) Send(m *ListResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _RoutingService_Search_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SearchRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RoutingServiceServer).Search(m, &routingServiceSearchServer{ServerStream: stream})
+}
+
+type RoutingService_SearchServer interface {
+	Send(*SearchResponse) error
+	grpc.ServerStream
+}
+
+type routingServiceSearchServer struct {
+	grpc.ServerStream
+}
+
+func (x *routingServiceSearchServer) Send(m *SearchResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _RoutingService_Unpublish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UnpublishRequest)
 	if err := dec(in); err != nil {
@@ -248,6 +312,11 @@ var RoutingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "List",
 			Handler:       _RoutingService_List_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Search",
+			Handler:       _RoutingService_Search_Handler,
 			ServerStreams: true,
 		},
 	},

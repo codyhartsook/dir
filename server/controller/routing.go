@@ -71,6 +71,26 @@ func (c *routingCtlr) List(req *routingtypes.ListRequest, srv routingtypes.Routi
 	return nil
 }
 
+func (c *routingCtlr) Search(req *routingtypes.SearchRequest, srv routingtypes.RoutingService_SearchServer) error {
+	routingLogger.Debug("Called routing controller's Search method", "req", req)
+
+	itemChan, err := c.routing.Search(srv.Context(), req)
+	if err != nil {
+		return fmt.Errorf("failed to search: %w", err)
+	}
+
+	items := []*routingtypes.SearchResponse_Item{}
+	for i := range itemChan {
+		items = append(items, i)
+	}
+
+	if err := srv.Send(&routingtypes.SearchResponse{Items: items}); err != nil {
+		return fmt.Errorf("failed to send: %w", err)
+	}
+
+	return nil
+}
+
 func (c *routingCtlr) Unpublish(ctx context.Context, req *routingtypes.UnpublishRequest) (*emptypb.Empty, error) {
 	routingLogger.Debug("Called routing controller's Unpublish method", "req", req)
 

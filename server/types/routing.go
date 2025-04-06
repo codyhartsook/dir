@@ -29,6 +29,11 @@ type RoutingAPI interface {
 	// Request can be assumed to be validated.
 	List(context.Context, *routingtypes.ListRequest) (<-chan *routingtypes.ListResponse_Item, error)
 
+	// Semantic search to network with a given request.
+	// This reads from content vector/index datastore.
+	// Request can be assumed to be validated.
+	Search(context.Context, *routingtypes.SearchRequest) (<-chan *routingtypes.SearchResponse_Item, error)
+
 	// Unpublish removes the object from the network.
 	// This removes the object from peer and content datastore.
 	Unpublish(ctx context.Context, object *coretypes.Object, network bool) error

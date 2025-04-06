@@ -55,6 +55,17 @@ func (r *route) List(ctx context.Context, req *routingtypes.ListRequest) (<-chan
 	return r.remote.List(ctx, req)
 }
 
+func (r *route) Search(ctx context.Context, req *routingtypes.SearchRequest) (<-chan *routingtypes.SearchResponse_Item, error) {
+	// return some dummy data for now
+	// TODO implement search
+	dumyChan := make(chan *routingtypes.SearchResponse_Item, 1)
+	dumyChan <- &routingtypes.SearchResponse_Item{
+		Score: 0,
+	}
+
+	return dumyChan, fmt.Errorf("search not implemented")
+}
+
 func (r *route) Unpublish(ctx context.Context, object *coretypes.Object, _ bool) error {
 	err := r.local.Unpublish(ctx, object)
 	if err != nil {

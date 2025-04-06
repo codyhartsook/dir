@@ -15,6 +15,7 @@ import (
 	"github.com/agntcy/dir/cli/cmd/publish"
 	"github.com/agntcy/dir/cli/cmd/pull"
 	"github.com/agntcy/dir/cli/cmd/push"
+	"github.com/agntcy/dir/cli/cmd/search"
 	"github.com/agntcy/dir/cli/cmd/unpublish"
 	"github.com/agntcy/dir/cli/cmd/version"
 	"github.com/agntcy/dir/cli/util"
@@ -58,6 +59,7 @@ func init() {
 		// routing commands
 		publish.Command,
 		list.Command,
+		search.Command,
 		unpublish.Command,
 		network.Command,
 	)

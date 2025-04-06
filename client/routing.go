@@ -61,6 +61,41 @@ func (c *Client) List(ctx context.Context, req *routingtypes.ListRequest) (<-cha
 	return resCh, nil
 }
 
+func (c *Client) Search(ctx context.Context, req *routingtypes.SearchRequest) (<-chan *routingtypes.SearchResponse_Item, error) {
+	stream, err := c.RoutingServiceClient.Search(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create search stream: %w", err)
+	}
+
+	// TODO: remove chan size constant
+	// Add a max-results parameter to the request and use it to set the channel size
+	resCh := make(chan *routingtypes.SearchResponse_Item, 100) //nolint:mnd
+
+	go func() {
+		defer close(resCh)
+
+		for {
+			obj, err := stream.Recv()
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			if err != nil {
+				logger.Error("error receiving object", "error", err)
+
+				return
+			}
+
+			items := obj.GetItems()
+			for _, item := range items {
+				resCh <- item
+			}
+		}
+	}()
+
+	return resCh, nil
+}
+
 func (c *Client) Unpublish(ctx context.Context, ref *coretypes.ObjectRef, network bool) error {
 	_, err := c.RoutingServiceClient.Unpublish(ctx, &routingtypes.UnpublishRequest{
 		Record:  ref,
