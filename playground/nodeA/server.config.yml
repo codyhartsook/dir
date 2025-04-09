@@ -1,0 +1,14 @@
+name: "Default config"
+listen_address: "0.0.0.0:8888"            # DefaultListenAddress
+healthcheck_address: "0.0.0.0:8889"         # DefaultHealthCheckAddress
+provider: "oci"                             # DefaultProvider
+localfs:
+  dir: "/tmp"                    # localfs.DefaultDir (replace with actual default)
+oci:
+  registry_address: "127.0.0.1:5000"         # DefaultRegistryAddress
+  repository_name: "dir"                     # DefaultRepositoryName
+  auth_config:
+    insecure: true                           # DefaultAuthConfigInsecure
+routing:
+  listen_address: "/ip4/0.0.0.0/tcp/8999"    # DefaultListenAddress (updated as per your code)
+  bootstrap_peers: []                        # DefaultBootstrapPeers (leave as empty array for now)

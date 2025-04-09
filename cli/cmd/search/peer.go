@@ -40,7 +40,7 @@ func searchPeer(cmd *cobra.Command, client *client.Client, peerID string, labels
 	// Print the results
 	for item := range items {
 		presenter.Printf(cmd,
-			"Peer %s\n  Digest: %s\n  Labels: %s\n Score: %d\n",
+			"Peer %s\n  Digest: %s\n  Labels: %s\n Score: %f\n",
 			item.GetPeer().GetId(),
 			item.GetRecord().GetDigest(),
 			strings.Join(item.GetLabels(), ", "),

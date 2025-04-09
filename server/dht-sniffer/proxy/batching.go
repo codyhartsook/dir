@@ -1,0 +1,73 @@
+package proxy
+
+import (
+	"context"
+
+	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/query"
+)
+
+// Batching is a datastore with hooks that also supports batching
+type Batching struct {
+	ds  datastore.Batching
+	hds *Datastore
+}
+
+// NewBatching wraps a datastore.Batching datastore and adds optional before and after hooks into it's methods
+func NewBatching(ds datastore.Batching, options ...Option) *Batching {
+	return &Batching{ds: ds, hds: NewDatastore(ds, options...)}
+}
+
+// Put stores the object `value` named by `key`, it calls OnBeforePut and OnAfterPut hooks.
+func (bds *Batching) Put(ctx context.Context, key datastore.Key, value []byte) error {
+	return bds.hds.Put(ctx, key, value)
+}
+
+// Delete removes the value for given `key`, it calls OnBeforeDelete and OnAfterDelete hooks.
+func (bds *Batching) Delete(ctx context.Context, key datastore.Key) error {
+	return bds.hds.Delete(ctx, key)
+}
+
+// Get retrieves the object `value` named by `key`, it calls OnBeforeGet and OnAfterGet hooks.
+func (bds *Batching) Get(ctx context.Context, key datastore.Key) ([]byte, error) {
+	return bds.hds.Get(ctx, key)
+}
+
+// Has returns whether the `key` is mapped to a `value`.
+func (bds *Batching) Has(ctx context.Context, key datastore.Key) (bool, error) {
+	return bds.hds.Has(ctx, key)
+}
+
+// GetSize returns the size of the `value` named by `key`.
+func (bds *Batching) GetSize(ctx context.Context, key datastore.Key) (int, error) {
+	return bds.hds.GetSize(ctx, key)
+}
+
+// Query searches the datastore and returns a query result.
+func (bds *Batching) Query(ctx context.Context, q query.Query) (query.Results, error) {
+	return bds.hds.Query(ctx, q)
+}
+
+// Batch creates a container for a group of updates, it calls OnBeforeBatch and OnAfterBatch hooks.
+func (bds *Batching) Batch(ctx context.Context) (datastore.Batch, error) {
+	if bds.hds.options.BeforeBatch != nil {
+		bds.hds.options.BeforeBatch()
+	}
+	bch, err := bds.ds.Batch(ctx)
+	if bds.hds.options.AfterBatch != nil {
+		bch, err = bds.hds.options.AfterBatch(bch, err)
+	}
+	return bch, err
+}
+
+// Sync guarantees that any Put or Delete calls under prefix that returned
+// before Sync(prefix) was called will be observed after Sync(prefix)
+// returns, even if the program crashes.
+func (bds *Batching) Sync(ctx context.Context, prefix datastore.Key) error {
+	return bds.hds.Sync(ctx, prefix)
+}
+
+// Close closes the underlying datastore
+func (bds *Batching) Close() error {
+	return bds.hds.Close()
+}

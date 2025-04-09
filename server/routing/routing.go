@@ -58,12 +58,22 @@ func (r *route) List(ctx context.Context, req *routingtypes.ListRequest) (<-chan
 func (r *route) Search(ctx context.Context, req *routingtypes.SearchRequest) (<-chan *routingtypes.SearchResponse_Item, error) {
 	// return some dummy data for now
 	// TODO implement search
-	dumyChan := make(chan *routingtypes.SearchResponse_Item, 1)
+	dumyChan := make(chan *routingtypes.SearchResponse_Item, 100)
+	defer close(dumyChan)
+
 	dumyChan <- &routingtypes.SearchResponse_Item{
+		Labels: []string{"dummy"},
+		Peer: &routingtypes.Peer{
+			Id: "HOST",
+		},
+		Record: &coretypes.ObjectRef{
+			Type:   coretypes.ObjectType_OBJECT_TYPE_AGENT.String(),
+			Digest: "dummy-digest",
+		},
 		Score: 0,
 	}
 
-	return dumyChan, fmt.Errorf("search not implemented")
+	return dumyChan, nil
 }
 
 func (r *route) Unpublish(ctx context.Context, object *coretypes.Object, _ bool) error {
