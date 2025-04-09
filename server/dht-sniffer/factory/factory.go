@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	sniffer "github.com/agntcy/dir/server/dht-sniffer"
-	"github.com/ipfs-search/ipfs-search/components/queue"
 
 	"github.com/ipfs/go-datastore"
 )
@@ -18,9 +17,7 @@ func Start(ctx context.Context, ds datastore.Batching) (context.Context, datasto
 	// Create context which can be canceled by sniffer so as to propagate failure from sniffer goroutine.
 	ctx, cancel := context.WithCancel(ctx)
 
-	q := queue.MockFactory{}
-
-	s, err := sniffer.New(cfg, ds, &q, nil)
+	s, err := sniffer.New(cfg, ds, nil)
 	if err != nil {
 		cancel()
 		return nil, nil, err

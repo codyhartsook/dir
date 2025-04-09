@@ -5,10 +5,13 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/providers"
 )
 
+var metrics = "/metrics"
+
 // root namespace of provider keys
 var providersRoot = datastore.NewKey(providers.ProvidersKeyPrefix)
 var agentsRoot = datastore.NewKey("/agents")
 var skillsRoot = datastore.NewKey("/skills")
+var metricsRoot = datastore.NewKey("/metrics")
 
 func isProviderKey(k datastore.Key) bool {
 	// not interested if this is not a query for providers of a particular cid
@@ -18,7 +21,7 @@ func isProviderKey(k datastore.Key) bool {
 	//}
 
 	// ignore keys that are not in the providers namespace
-	if !providersRoot.IsAncestorOf(k) && !agentsRoot.IsAncestorOf(k) && !skillsRoot.IsAncestorOf(k) {
+	if !metricsRoot.IsAncestorOf(k) {
 		return false
 	}
 

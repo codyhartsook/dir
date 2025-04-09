@@ -18,9 +18,9 @@ import (
 	"github.com/agntcy/dir/server/config"
 	"github.com/agntcy/dir/server/controller"
 	"github.com/agntcy/dir/server/datastore"
-	sniffer "github.com/agntcy/dir/server/dht-sniffer/factory"
 	"github.com/agntcy/dir/server/routing"
 	"github.com/agntcy/dir/server/store"
+	"github.com/agntcy/dir/server/store/notifiers"
 	"github.com/agntcy/dir/server/types"
 	"github.com/agntcy/dir/utils/logging"
 	"google.golang.org/grpc"
@@ -72,19 +72,8 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to create datastore: %w", err)
 	}
 
-	// ********************************************************************
-	// Create a dht datastore sniffer with the base datastore
-	ctx, wrappedDS, err := sniffer.Start(ctx, dstore)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sniffer: %w", err)
-	}
-
 	// Load API options
-	options := types.NewOptions(cfg, wrappedDS)
-
-	logger.Info("DHT node and sniffer are running")
-
-	// *******************************************************************
+	options := types.NewOptions(cfg, dstore)
 
 	// Create APIs
 	storeAPI, err := store.New(options) //nolint:staticcheck
@@ -97,18 +86,20 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to create routing: %w", err)
 	}
 
+	notifierStoreAPI := notifiers.Wrap(options, storeAPI)
+
 	// Create server
 	server := &Server{
 		options:       options,
-		store:         storeAPI,
+		store:         notifierStoreAPI,
 		routing:       routingAPI,
 		healthzServer: healthz.NewHealthServer(cfg.HealthCheckAddress),
 		grpcServer:    grpc.NewServer(),
 	}
 
 	// Register APIs
-	storetypes.RegisterStoreServiceServer(server.grpcServer, controller.NewStoreController(storeAPI))
-	routingtypes.RegisterRoutingServiceServer(server.grpcServer, controller.NewRoutingController(routingAPI, storeAPI))
+	storetypes.RegisterStoreServiceServer(server.grpcServer, controller.NewStoreController(notifierStoreAPI))
+	routingtypes.RegisterRoutingServiceServer(server.grpcServer, controller.NewRoutingController(routingAPI, notifierStoreAPI))
 
 	// Register server
 	reflection.Register(server.grpcServer)

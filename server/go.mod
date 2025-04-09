@@ -12,16 +12,15 @@ require (
 	github.com/Portshift/go-utils v0.0.0-20220421083203-89265d8a6487
 	github.com/agntcy/dir/api v0.2.1
 	github.com/agntcy/dir/utils v0.2.1
-	github.com/blevesearch/bleve v1.0.14
 	github.com/ipfs-search/ipfs-search v0.0.0-20230531131258-ada256fd7014
 	github.com/ipfs/go-datastore v0.8.2
-	github.com/libp2p/go-eventbus v0.3.0
 	github.com/libp2p/go-libp2p v0.41.0
 	github.com/libp2p/go-libp2p-gorpc v0.6.0
 	github.com/libp2p/go-libp2p-kad-dht v0.30.2
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/spf13/afero v1.14.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
@@ -32,29 +31,11 @@ require (
 )
 
 require (
-	github.com/RoaringBitmap/roaring v0.4.23 // indirect
-	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
-	github.com/blevesearch/mmap-go v1.0.2 // indirect
-	github.com/blevesearch/segment v0.9.0 // indirect
-	github.com/blevesearch/snowballstem v0.9.0 // indirect
-	github.com/blevesearch/zap/v11 v11.0.14 // indirect
-	github.com/blevesearch/zap/v12 v12.0.14 // indirect
-	github.com/blevesearch/zap/v13 v13.0.6 // indirect
-	github.com/blevesearch/zap/v14 v14.0.5 // indirect
-	github.com/blevesearch/zap/v15 v15.0.3 // indirect
-	github.com/couchbase/vellum v1.0.2 // indirect
-	github.com/glycerine/go-unsnap-stream v0.0.0-20181221182339-f9677308dec2 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/golang/snappy v0.0.1 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/gopherjs/gopherjs v0.0.0-20190910122728-9d188e94fb99 // indirect
 	github.com/libp2p/go-libp2p-record v0.3.1 // indirect
-	github.com/mschoch/smat v0.2.0 // indirect
-	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.3.4 // indirect
-	github.com/steveyen/gtreap v0.1.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/tinylib/msgp v1.1.0 // indirect
-	github.com/willf/bitset v1.1.10 // indirect
-	go.etcd.io/bbolt v1.3.5 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.10.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.34.0 // indirect
 )

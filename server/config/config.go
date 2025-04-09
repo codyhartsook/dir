@@ -28,6 +28,8 @@ const (
 
 	DefaultProvider = "oci"
 
+	DefaultNotifier = ""
+
 	DefaultConfigName = "server.config"
 	DefaultConfigType = "yml"
 	DefaultConfigPath = "/etc/agntcy/dir"
@@ -44,6 +46,12 @@ type Config struct {
 	Provider string         `json:"provider,omitempty" mapstructure:"provider"`
 	LocalFS  localfs.Config `json:"localfs,omitempty"  mapstructure:"localfs"`
 	OCI      oci.Config     `json:"oci,omitempty"      mapstructure:"oci"`
+
+	Notifier string `json:"notifier,omitempty" mapstructure:"notifier"`
+	Webhook  string `json:"webhook,omitempty"  mapstructure:"webhook"`
+	Sql      string `json:"sql,omitempty"      mapstructure:"sql"`
+	Redis    string `json:"redis,omitempty"    mapstructure:"redis"`
+	Nats     string `json:"nats,omitempty"     mapstructure:"nats"`
 
 	// Routing configuration
 	Routing routing.Config `json:"routing,omitempty" mapstructure:"routing"`
@@ -87,6 +95,20 @@ func LoadConfig() (*Config, error) {
 	//
 	_ = v.BindEnv("provider")
 	v.SetDefault("provider", DefaultProvider)
+
+	//
+	// Notifier configuration
+	//
+	_ = v.BindEnv("notifier")
+	v.SetDefault("notifier", DefaultNotifier)
+	_ = v.BindEnv("webhook")
+	v.SetDefault("webhook", "")
+	_ = v.BindEnv("sql")
+	v.SetDefault("sql", "")
+	_ = v.BindEnv("redis")
+	v.SetDefault("redis", "")
+	_ = v.BindEnv("nats")
+	v.SetDefault("nats", "")
 
 	//
 	// LocalFS configuration

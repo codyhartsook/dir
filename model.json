@@ -1,7 +1,10 @@
 {
  "name": "my-agent",
  "skills": [
-    {"category_name": "Text Generation"},
-    {"category_name": "Fact Extraction"}
+    {
+      "category_name": "Text Generation",
+      "annotations": {
+        "description": "this is a description"
+      }}
  ]
 }

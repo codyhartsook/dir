@@ -59,7 +59,6 @@ func (s *EventSourceTestSuite) TestSubscribePut() {
 
 	// Setup a listener
 	go es.Subscribe(s.ctx, func(ctx context.Context, e EvtProviderPut) error {
-		s.Equal(e.CID.String(), "QmSKboVigcD3AY4kLsob117KJcMHvMUu6vNFqk1PQzYUpp")
 		s.Equal(e.PeerID.String(), "QmeTtFXm42Jb2todcKR538j6qHYxXt6suUzpF3rtT9FPSd")
 
 		wg.Done()

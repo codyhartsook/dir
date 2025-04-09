@@ -2,16 +2,17 @@ package eventsource
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
+	coretypes "github.com/agntcy/dir/api/core/v1alpha1"
 	"github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p/core/event"
 	"github.com/libp2p/go-libp2p/p2p/host/eventbus"
 
 	"github.com/agntcy/dir/server/dht-sniffer/proxy"
 	"github.com/ipfs-search/ipfs-search/instr"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
 
@@ -48,49 +49,45 @@ func New(b event.Bus, ds datastore.Batching) (EventSource, error) {
 }
 
 func (s *EventSource) afterPut(k datastore.Key, v []byte, err error) error {
-	fmt.Println("afterPut called-------------", v)
 	_, span := s.Tracer.Start(context.TODO(), "eventsource.afterPut")
 	defer span.End()
 
 	// Ignore error'ed Put's
 	if err != nil {
+		fmt.Println("input err was not nil", err.Error())
 		span.RecordError(err)
 		return err
 	}
 
-	fmt.Println("got key", k)
-
-	// Ignore non-provider keys
-	if !isProviderKey(k) {
-		span.RecordError(fmt.Errorf("Non-provider key"))
+	// filter out non metrics key types
+	if k.String() != "/metrics" {
 		return nil
 	}
 
-	fmt.Println("is provider key")
-
-	cid, err := keyToCID(k)
+	// get data from datastore
+	var agent coretypes.Agent
+	data, err := s.ds.Get(context.TODO(), k)
 	if err != nil {
-		span.RecordError(fmt.Errorf("cid from key '%s': %w", k, err))
 		return nil
+	} else {
+		err = json.Unmarshal(data, &agent)
+		if err != nil {
+			span.RecordError(fmt.Errorf("unmarshalling agent: %w", err))
+			return nil
+		}
 	}
-
-	fmt.Println("got cid", cid)
 
 	pid, err := keyToPeerID(k)
 	if err != nil {
+		fmt.Println("input err was not nil", err.Error())
 		span.RecordError(fmt.Errorf("pid from key '%s': %w", k, err))
 		return nil
 	}
 
-	fmt.Println("got peer id", pid)
-
-	span.SetAttributes(
-		attribute.Stringer("cid", cid),
-		attribute.Stringer("peerid", pid),
-	)
+	fmt.Println("sniffed agent", string(data))
 
 	e := EvtProviderPut{
-		CID:         cid,
+		Agent:       data,
 		PeerID:      pid,
 		SpanContext: span.SpanContext(),
 	}

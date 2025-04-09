@@ -11,9 +11,7 @@ import (
 	"context"
 	_ "context"
 	"fmt"
-	_ "fmt"
 	"log"
-	_ "log"
 	"time"
 	_ "time"
 
@@ -22,12 +20,12 @@ import (
 
 	// "go.opentelemetry.io/otel/codes"
 	"github.com/agntcy/dir/server/dht-sniffer/eventsource"
+	e "github.com/agntcy/dir/server/dht-sniffer/eventsource"
 	"github.com/agntcy/dir/server/dht-sniffer/handler"
-	"github.com/ipfs-search/ipfs-search/components/queue"
 	"github.com/ipfs-search/ipfs-search/instr"
-	t "github.com/ipfs-search/ipfs-search/types"
 	"github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p/p2p/host/eventbus"
+	"github.com/redis/go-redis/v9"
 )
 
 type Config struct {
@@ -52,15 +50,13 @@ func DefaultConfig() *Config {
 type Sniffer struct {
 	cfg *Config
 	es  eventsource.EventSource
-	pub queue.PublisherFactory
 
 	*instr.Instrumentation
 }
 
 // New creates a new Sniffer based on a datastore, or returns an error.
-func New(cfg *Config, ds datastore.Batching, pub queue.PublisherFactory, i *instr.Instrumentation) (*Sniffer, error) {
+func New(cfg *Config, ds datastore.Batching, i *instr.Instrumentation) (*Sniffer, error) {
 	bus := eventbus.NewBus()
-	fmt.Println("bus", bus)
 
 	es, err := eventsource.New(bus, ds)
 	if err != nil {
@@ -70,7 +66,6 @@ func New(cfg *Config, ds datastore.Batching, pub queue.PublisherFactory, i *inst
 	s := Sniffer{
 		cfg:             cfg,
 		es:              es,
-		pub:             pub,
 		Instrumentation: i,
 	}
 
@@ -82,7 +77,47 @@ func (s *Sniffer) Batching() datastore.Batching {
 	return s.es.Batching()
 }
 
-func (s *Sniffer) subscribe(ctx context.Context, c chan<- t.Provider) error {
+func (s *Sniffer) consume(ctx context.Context, c chan e.EvtProviderPut) error {
+	redisAddr := fmt.Sprintf("%s:%d", "localhost", 6379)
+	// Create Redis client
+	client := redis.NewClient(&redis.Options{
+		Addr:     redisAddr,
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+
+	// Test the connection
+	_, err := client.Ping(ctx).Result()
+	if err != nil {
+		fmt.Printf("Failed to connect to Redis at %s: %v\n", redisAddr, err)
+		return err
+	}
+
+	go func() {
+		// read from the channel and publish to the queue
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case p := <-c:
+				// Publish to Redis
+				err = client.Publish(ctx, "messages", p.Agent).Err()
+				if err != nil {
+					fmt.Printf("Error publishing message: %v\n", err)
+				} else {
+					fmt.Printf("Published message: %s\n", string(p.Agent))
+				}
+
+				fmt.Println("agentBytes", string(p.Agent))
+				// get the model given the agent
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (s *Sniffer) subscribe(ctx context.Context, c chan e.EvtProviderPut) error {
 	// ctx, span := s.Tracer.Start(ctx, "sniffer.subscribe")
 	// defer span.End()
 
@@ -94,69 +129,14 @@ func (s *Sniffer) subscribe(ctx context.Context, c chan<- t.Provider) error {
 	return err
 }
 
-func (s *Sniffer) filter(ctx context.Context, in <-chan t.Provider, out chan<- t.Provider) error {
-	// ctx, span := s.Tracer.Start(ctx, "sniffer.filter")
-	// defer span.End()
-
-	//lastSeenFilter := filters.NewLastSeenFilter(s.cfg.LastSeenExpiration, s.cfg.LastSeenPruneLen)
-	//cidFilter := filters.NewCidFilter()
-	//mutliFilter := filters.NewMultiFilter(lastSeenFilter, cidFilter)
-	//f := filter.New(mutliFilter, in, out)
-
-	//err := f.Filter(ctx)
-	// span.RecordError(err)
-	// span.SetStatus(codes.Internal, err.Error())
-	return nil
-}
-
-func (s *Sniffer) queue(ctx context.Context, c <-chan t.Provider) error {
-	// ctx, span := s.Tracer.Start(ctx, "sniffer.Queue")
-	// defer span.End()
-
-	/*publisher, err := s.pub.NewPublisher(ctx)
-	if err != nil {
-		return err
-	}
-
-	q := queuer.New(publisher, c)
-
-	err = q.Queue(ctx)*/
-
-	// create a listener in the background
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case p, ok := <-c:
-				if !ok {
-					return
-				}
-				fmt.Println("Queueing provider:", p)
-			}
-		}
-	}()
-
-	// span.RecordError(err)
-	// span.SetStatus(codes.Internal, err.Error())
-	return nil
-}
-
-func (s *Sniffer) iterate(ctx context.Context, sniffed, filtered chan t.Provider) error {
-	// ctx, span := s.Tracer.Start(ctx, "sniffer.iterate")
-	// defer span.End()
-
+func (s *Sniffer) iterate(ctx context.Context, sniffed chan e.EvtProviderPut) error {
 	// Create error group and context
 	errg, ctx := errgroup.WithContext(ctx)
 	errg.Go(func() error { return s.subscribe(ctx, sniffed) })
-	errg.Go(func() error { return s.filter(ctx, sniffed, filtered) })
-	errg.Go(func() error { return s.queue(ctx, filtered) })
+	errg.Go(func() error { return s.consume(ctx, sniffed) })
 
 	// Wait until all contexts are closed, then return *first* error
 	err := errg.Wait()
-
-	// span.RecordError(err)
-	// span.SetStatus(codes.Internal, err.Error())
 
 	return err
 }
@@ -166,11 +146,10 @@ func (s *Sniffer) Sniff(ctx context.Context) error {
 	// ctx, span := s.Tracer.Start(ctx, "sniffer.Sniff")
 	// defer span.End()
 
-	sniffed := make(chan t.Provider, s.cfg.BufferSize)
-	filtered := make(chan t.Provider, s.cfg.BufferSize)
+	sniffed := make(chan e.EvtProviderPut, s.cfg.BufferSize)
 
 	for {
-		err := s.iterate(ctx, sniffed, filtered)
+		err := s.iterate(ctx, sniffed)
 
 		// Closing the parent context should cause a return, other errors cause a restart
 		if err := ctx.Err(); err != nil {
